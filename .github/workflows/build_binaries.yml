@@ -1,11 +1,12 @@
-name: Build Binaries # Continuous Deployment
+name: Build Binaries
 
 permissions:
-  contents: write
+  contents: read
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - master
 
 env:
   CARGO_INCREMENTAL: 0
@@ -21,9 +22,8 @@ defaults:
     shell: bash
 
 jobs:
-  upload-assets:
+  build:
     name: ${{ matrix.target }}
-    if: github.repository_owner == 'shell-pool' && startsWith(github.event.release.name, 'shpool')
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -57,10 +57,8 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu') && !contains(matrix.target, '-musl')
       - run: echo "RUSTFLAGS=${RUSTFLAGS} -C target-feature=+crt-static" >> "${GITHUB_ENV}"
         if: endsWith(matrix.target, 'windows-msvc')
-      - uses: taiki-e/upload-rust-binary-action@3962470d6e7f1993108411bc3f75a135ec67fc8c
+      - uses: actions/upload-artifact@v5
         with:
-          bin: shpool
-          target: ${{ matrix.target }}
-          tar: all
-          zip: windows
-          token: ${{ secrets.GITHUB_TOKEN }}
+          name: shpool-${{ matrix.target }}
+          path: shpool-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
